@@ -2,7 +2,7 @@
 
 Sysmon Graph is project to visualize sysmon logs.
 
-![](https://github.com/[username]/[reponame]/blob/[branch]/image.jpg?raw=true)
+![](https://github.com/spyx/SysmonGrahp/blob/main/screenshot/screenshot.png?raw=true)
 
 You can quickly get overview of relations between processes, file creation, DNS requests or Network connection. 
 It should help speed process our with manual threat hunting. 
