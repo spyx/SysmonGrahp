@@ -1,0 +1,475 @@
+<!doctype html>
+<html>
+    <head>
+        <title>SysmonGraps</title>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.17.0/cytoscape.min.js" integrity="sha512-IawH7O9E5azuuGrjPfWpcrniP8gqS0BL9Dr0zw/1cK81cGSgBcABfJUgHi9YvychZt+5SkQYEFeCvBOs0tilxA==" crossorigin="anonymous"></script>
+        <script src="https://unpkg.com/neo4j-driver"></script>
+        <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+        <script src="https://rawgit.com/neo4j-contrib/neovis.js/master/dist/neovis.js"></script>
+        <style type="text/css">
+            html, body {
+                font: 16pt arial;
+            }
+    
+            #viz {
+                width: 100%;
+                height: 1000px;
+                border: 1px solid lightgray;
+                font: 22pt arial;
+            }
+        </style>
+        
+    </head>
+    <body onload="draw()">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-sm-2">
+
+
+                  
+                    <div class="card">
+                      <div class="card-header">Max Nodes</div>
+                      <div id="maxLimit" class="card-body">300</div>
+              </div>
+
+              <br>
+              <h6>Search:</h6>
+                    <div id="accordion">
+                        <div class="card">
+                          <div class="card-header" id="headingOne">
+                            <h5 class="mb-0">
+                              <button class="btn btn-link" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                                Date
+                              </button>
+                            </h5>
+                          </div>
+                      
+                          <div id="collapseOne" class="collapse show" aria-labelledby="headingOne" data-parent="#accordion">
+                            <div class="card-body">
+                              
+                            </div>
+                          </div>
+                        </div>
+                        <div class="card">
+                          <div class="card-header" id="headingTwo">
+                            <h5 class="mb-0">
+                              <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                                Accounts
+                              </button>
+                            </h5>
+                          </div>
+                          <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordion">
+                            <div class="card-body">
+                            
+
+                            </div>
+                          </div>
+                        </div>
+                        <div class="card">
+                          <div class="card-header" id="headingThree">
+                            <h5 class="mb-0">
+                              <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                                Processes
+                              </button>
+                            </h5>
+                          </div>
+                          <div id="collapseThree" class="collapse" aria-labelledby="headingThree" data-parent="#accordion">
+                            <div class="card-body">
+                              
+                            </div>
+                          </div>
+                        </div>
+                      </div>                     
+                        <button class="btn btn-primary" id="changeGraph" >Submit</button>
+                        <button class="btn btn-danger" id="resetGraph" >Reset</button>
+                    
+                </div>
+                <div class="col-sm-8">
+                    <div class="row">
+                        <button class="btn btn-primary" id="hierarchyGraph">Circle</button>
+                        <button class="btn btn-warning" id="freezeGraph">Freeze</button>
+                        <button class="btn btn-danger" id="adminPortal" data-toggle="modal" data-target="#exampleModal">Admin</button>
+                        <button class="btn btn-primary" id="processGraph">Processes</button>
+                        
+                        <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                          <div class="modal-dialog" role="document">
+                            <div class="modal-content">
+                              <div class="modal-header">
+                                <h5 class="modal-title" id="exampleModalLabel">Settings</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                  <span aria-hidden="true">&times;</span>
+                                </button>
+                              </div>
+                              <div class="modal-body">
+                                <label for="adminLimit">Max nodes</label>
+                                <input type="text" class="form-control" id="adminLimit" aria-describedby="limitHelp" placeholder="0">
+                              <small id='limitHelp' class="form-text text-muted">0 if unlimited</small>
+  
+                              <label for="adminDistance">Max hop node</label>
+                              <input type="text" class="form-control" id="adminDistance" aria-describedby="limitHelp" placeholder="0">
+                              <small id='limitHelp' class="form-text text-muted">1 is minimum</small>
+
+                              <hr>  
+                              <div class="form-group">
+                                <label for="exampleFormControlFile1">Load Graph</label>
+                              <input class='form-control-file' type="file" id='loadNodes'>
+                              </div>
+
+                              <button class='btn btn-danger' data-dismiss='modal' id='deleteData'>Delete Nodes</button>
+
+                              </div>
+                              <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                <button type="button" class="btn btn-primary" data-dismiss="modal" id="saveChanges">Save changes</button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>  
+                    </div>
+                    <div class="row">
+                        <div id="viz"></div>
+                    </div>              
+                </div>
+                <div class=col-sm-2>
+                    <div class="card">
+                        <div class="card-header">Details</div>
+                        <div id="detailCard" class="card-body"></div>
+                </div>
+            </div>
+        </div>
+
+        <script type="text/javascript">
+            var driver = neo4j.driver(
+              'neo4j://localhost:7687',
+              //neo4j.auth.basic('noe4j','test')
+            )
+            var viz;            
+            var limit = 300;
+            var distance = 2;
+            var query = "";
+            var config = {
+                    container_id: "viz",
+                    server_url: "bolt://localhost:7687",
+                    //server_user: "neo4j",
+                    //server_password: "sorts-swims-burglaries",
+                    labels: {
+                        "Process": {
+                            "caption": "name",
+                        },
+                        "DNS" : {
+                            "caption": "name",
+                        },
+                        "Network": {
+                            "caption": "name",
+                        },
+                        "File": {
+                            "caption": "name",
+                        },
+                        "FileStream": {
+                            "caption": "name",
+                        },
+                        "FileDel": {
+                            "caption": "name",
+                        }
+                    },
+                    relationships: {
+                        "CreateProcess": {
+                            "thickness": "weight",
+                            "caption": false,
+                        },
+                        "NetworkConnection" : {
+                            "thickness": "weight",
+                            "caption": true,
+                        },
+                        "DNS_Request" : {
+                            "thickness": "weight",
+                            "caption": true,
+                        },
+                        "FileCreated" : {
+                            "thickness": "weight",
+                            "caption": true,
+                        },
+                        "FileStreamCreated" : {
+                            "thickness": "weight",
+                            "caption": true,
+                        },
+                        "FileDeleted" : {
+                            "thickness": "weight",
+                            "caption": true,
+                        }
+                    },
+                    arrows: true,
+                    hierarchical: true,
+                    //hierarchical_sort_method: "hubsize", //directed
+                    initial_cypher: "match (p:Process)-[r]-(q)return * limit "+limit
+                }
+
+
+            function draw() {
+    
+                viz = new NeoVis.default(config);
+                viz.render();
+                
+
+                viz.registerOnEvent("completed", (e)=>{ 
+                 viz["_network"].on("click", (event)=>{ 
+                console.log(event)
+                getDetails(event.nodes[0]);
+                });
+                });
+                
+                function getDetails(id) {
+
+                    var session = driver.session()
+                    var readTxResultPromise = session.readTransaction(txc => {
+                    // used transaction will be committed automatically, no need for explicit commit/rollback
+                    var result = txc.run('match (p) where ID(p) = '+id+' return *')
+                    // at this point it is possible to either return the result or process it and return the
+                    // result of processing it is also possible to run more statements in the same transaction
+                    return result
+                    })
+                    var results
+                    // returned Promise can be later consumed like this:
+                    readTxResultPromise
+                    .then(result => {
+                    console.log(result.records)
+                    detail = result.records
+                    var marek = detail[0]._fields[0].properties
+                    $("#detailCard").empty()                   
+                    for (var key in marek) {
+                      if (marek.hasOwnProperty(key)) {
+                        if (key == "CommandLine") {
+                          $("#detailCard").append("<p><b>"+ key +"</b> : "+ atob(marek[key]) +"</p>")
+                        }
+                        else {
+                          $("#detailCard").append("<p><b>"+key+"</b> : "+marek[key]+" </p>")
+                        }
+                      }
+                    }
+                    $("#detailCard").append("<br>")
+                    $("#detailCard").append("<button class='btn btn-primary' onclick='followNode(\""+detail[0]._fields[0].identity.low+"\")'>Follow</button>")
+                    })
+                    .catch(error =>{
+                    console.log(error)
+                    })
+                    .then(() => session.close())
+                } // end GEtDetails func
+
+                    // get all process names
+
+                    var processes = [] 
+                    var session = driver.session()
+                    var readTxResultPromise = session.readTransaction(txc => {
+                    // used transaction will be committed automatically, no need for explicit commit/rollback                   
+                    var result = txc.run('MATCH (n:Process)RETURN distinct n.name')
+                    // at this point it is possible to either return the result or process it and return the
+                    // result of processing it is also possible to run more statements in the same transaction
+                    return result
+                    })
+                    var results
+                    // returned Promise can be later consumed like this:
+                    readTxResultPromise
+                    .then(result => {
+                      // console.log(result.records)
+                      results = result.records
+                      results.forEach(element => $("#collapseThree").find(".card-body").append("<small><input name=\"process\" value=\""+element._fields[0]+"\" type=\"checkbox\">"+element._fields[0]+"<small><BR>"))                    
+                    })
+                    .catch(error => {
+                      console.log(error)
+                    })
+                    .then(() => session.close())
+
+                    // get all dates
+
+                    var session2 = driver.session()
+                    var readTxResultPromise = session2.readTransaction(txc => {
+                    // used transaction will be committed automatically, no need for explicit commit/rollback
+                    var result = txc.run('MATCH (n:Process)RETURN distinct n.date')
+                    // at this point it is possible to either return the result or process it and return the
+                    // result of processing it is also possible to run more statements in the same transaction
+                    return result
+                    })
+                    var results
+                    // returned Promise can be later consumed like this:
+                    readTxResultPromise
+                    .then(result => {
+                      //console.log(result.records)
+                      results = result.records
+                      results.forEach(element => $("#collapseOne").find(".card-body").append("<small><input name=\"date\" value=\""+element._fields[0]+"\" type=\"checkbox\">"+element._fields[0]+"<small><BR>"))  
+                    })
+                    .catch(error => {
+                      console.log(error)
+                    })
+                    .then(() => session2.close())
+
+                    //get all usernames
+
+                    var session3 = driver.session()
+                    var readTxResultPromise = session3.readTransaction(txc => {
+                    // used transaction will be committed automatically, no need for explicit commit/rollback
+                    var result = txc.run('MATCH (n:Process)RETURN distinct n.user')
+                    // at this point it is possible to either return the result or process it and return the
+                    // result of processing it is also possible to run more statements in the same transaction
+                    return result
+                    })
+                    var results
+                    // returned Promise can be later consumed like this:
+                    readTxResultPromise
+                      .then(result => {
+                        console.log(result.records)
+                        results = result.records
+                        results.forEach(element => $("#collapseTwo").find(".card-body").append("<small><input name=\"user\" value=\""+element._fields[0]+"\" type=\"checkbox\">"+element._fields[0]+"<small><BR>"))
+                        
+                      })
+                      .catch(error => {
+                        console.log(error)
+                      })
+                      .then(() => session3.close())
+                    
+          //load graph via file input
+          document.getElementById('loadNodes').addEventListener('change', handleFileSelect, false);
+
+          function handleFileSelect(event){
+              const reader = new FileReader()
+              reader.onload = handleFileLoad;
+              reader.readAsText(event.target.files[0])
+              setTimeout(function () { location.reload(true); }, 6000);
+          }
+
+          function handleFileLoad(event){
+            console.log(event);
+            //document.getElementById('fileContent').textContent = event.target.result;
+            $("#exampleModal").modal("hide")
+            config.initial_cypher = event.target.result;
+            viz.clearNetwork()
+            viz.reinit(config)
+
+          }        
+        } //end draw() function
+
+            function followNode(id) {
+                console.log(id)
+                config.initial_cypher = "match (p)-[r*1.."+distance+"]-(q) where ID(p) = "+id+" return * limit 200"
+                viz.clearNetwork()
+                viz.reinit(config)
+            }    
+            
+            $(document).ready(function() {
+                $("#deleteData").click(function() {
+                  config.initial_cypher="match (n) detach delete (n)"
+                  viz.clearNetwork()
+                  viz.reinit(config)
+                })
+
+                $("#saveChanges").click(function() {
+                  var setLimit = $("#adminLimit").val()
+                  var setDistance = $("#adminDistance").val()
+                  if (!isNaN(setLimit)) {
+                    limit = setLimit
+                    $("#maxLimit").html(limit)
+                  }
+                  if(!isNaN(setDistance)) {
+                    distance = setDistance
+                  }
+                })
+
+                // no needed
+//                $("#adminPortal").click(function() {
+//                  console.log("admin portal")
+//                })
+                  $("#processGraph").click(function() {
+                    //console.log("admin portal")
+                    viz.clearNetwork()
+                    config.initial_cypher = "MATCH (p:Process)-[r]-(q:Process) return * limit "+limit
+                    viz.reinit(config)
+                })
+
+                $("#hierarchyGraph").click(function() {
+                  config.hierarchical = !config.hierarchical
+                  viz.clearNetwork()
+                  viz.reinit(config)
+                  if (config.hierarchical) {
+                    $("#hierarchyGraph").html("Circle")
+                  }
+                  else{
+                    $("#hierarchyGraph").html("Hierarchy")
+                  }
+                })
+
+                $("#freezeGraph").click(function() {
+                  viz.stabilize()
+                })                
+
+                $("#resetGraph").click(function() {
+                    viz.clearNetwork()
+                    config.initial_cypher="match (p:Process)-[r]-(q)return * limit "+limit
+                    viz.reinit(config)
+                })
+                $("#changeGraph").click(function() {
+                    
+                    var date = [];
+                    $.each($("input[name='date']:checked"), function(){
+                        date.push($(this).val());
+                    });
+                    var process = [];
+                    $.each($("input[name='process']:checked"), function(){
+                        process.push($(this).val());
+                    });
+                    var user = [];
+                    $.each($("input[name='user']:checked"), function(){
+                        user.push($(this).val());
+                    });
+                    query = ""
+                    if (date.length == 0) {
+                        if (process.length == 0) {
+                            if (user.length == 0) {
+                                pass
+                            }
+                            else {
+                                var data = []
+                                user.forEach(e=> data.push("p.user = \""+e+"\""))
+                                query += data.join(" OR ")
+                            }
+                        }
+                        else {
+                            var data = []
+                            if (user.length != 0){
+                              user.forEach(e=> data.push("p.user = \""+e+"\""))
+                              query += data.join(" OR ")
+                              query += " AND "
+                            }
+                            data = []
+                            process.forEach(e=> data.push("p.name = \""+e+"\""))
+                            query += data.join(" OR ")
+                        }
+                    }
+                    else {
+                        var data = []
+                        if (user.length != 0){
+                          user.forEach(e=> data.push("p.user = \""+e+"\""))
+                          query += data.join(" OR ")
+                          query += " AND "
+                        }
+                        data = []
+                        if (process.length != 0){
+                          process.forEach(e=> data.push("p.name = \""+e+"\""))
+                          query += data.join(" OR ")
+                          query += " AND "
+                        }
+                        
+                        data = []
+                        date.forEach(e=> data.push("p.date = \""+e+"\""))
+                        query += data.join(" OR ")
+                    }
+                    config.initial_cypher = "MATCH (p:Process)-[r]-(q) WHERE "+query+" RETURN *"
+                    viz.clearNetwork()
+                    viz.reinit(config)   
+                    console.log(query)
+                });
+            });
+        </script>
+    </body>    
+</html>

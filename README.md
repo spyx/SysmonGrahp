@@ -33,7 +33,7 @@ If you host Noe4J Database just edit index.html file with proper IP addresses.
 For collection logs there is simple powershell script. Script simply output all results to screen. If you require collect more logs you can change it at begginig of file. By default script collect process createtion, DNS request, file creation and network conncetion. All Sysmon-ID/Nodes are available.
 
 ```powershell
-
+sysgraph.ps1 > logs.txt
 ```
 
 ### Usage
